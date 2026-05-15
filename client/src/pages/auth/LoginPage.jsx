@@ -1,0 +1,75 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
+
+export default function LoginPage() {
+  const { login } = useAuth();
+  const navigate  = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handle = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await login(form.email, form.password);
+      toast.success('Welcome back!');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg-base)', padding: 20,
+    }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14, background: 'var(--accent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.5rem', margin: '0 auto 14px',
+          }}>⬡</div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 800 }}>TaskFlow</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: '0.875rem' }}>
+            Sign in to your workspace
+          </p>
+        </div>
+
+        <div className="card" style={{ padding: 28 }}>
+          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input name="email" type="email" className="form-input"
+                placeholder="you@example.com" value={form.email} onChange={handle} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input name="password" type="password" className="form-input"
+                placeholder="••••••••" value={form.password} onChange={handle} required />
+            </div>
+            <button type="submit" className="btn btn-primary w-full" disabled={loading}
+              style={{ justifyContent: 'center', marginTop: 4 }}>
+              {loading ? <span className="spinner" /> : 'Sign In'}
+            </button>
+          </form>
+        </div>
+
+        <p style={{ textAlign: 'center', marginTop: 20, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+          No account?{' '}
+          <Link to="/signup" style={{ color: 'var(--accent-light)', fontWeight: 600 }}>
+            Create one
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
