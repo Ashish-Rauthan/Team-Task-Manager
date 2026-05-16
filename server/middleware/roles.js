@@ -25,8 +25,8 @@ const requireRole = (...roles) => (req, res, next) => {
  * requireProjectRole(...roles)
  * ────────────────────────────
  * Checks the user's role within a specific project (project_members.role).
- * Reads project_id from req.params.projectId.
- * Admins always pass.
+ * Reads project_id from req.params.projectId (or req.params.id for project-level routes).
+ * Admins always pass — they can manage any project regardless of membership.
  *
  * Usage:
  *   router.post('/:projectId/members', requireAuth, requireProjectRole('manager'), addMember)
@@ -37,7 +37,7 @@ const requireProjectRole = (...roles) => async (req, res, next) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Admins bypass project-level checks
+    // Admins bypass all project-level role checks
     if (req.profile.role === 'admin') return next();
 
     const projectId = req.params.projectId || req.params.id;
@@ -71,6 +71,7 @@ const requireProjectRole = (...roles) => async (req, res, next) => {
  * requireProjectMembership
  * ────────────────────────
  * Ensures the user is a member of the project (any role).
+ * Admins are always allowed through.
  * Shorthand for requireProjectRole('manager', 'member').
  */
 const requireProjectMembership = requireProjectRole('manager', 'member');

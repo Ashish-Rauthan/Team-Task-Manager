@@ -19,12 +19,22 @@ router.post('/',   requireRole('admin', 'manager'), projectRules, validate, crea
 router.get('/:id', requireProjectMembership, getProject);
 router.patch('/:id',
   requireProjectRole('manager'), projectRules, validate, updateProject);
+
+// Admins can delete ANY project regardless of membership.
+// Project managers can delete projects they manage.
 router.delete('/:id',
-  requireProjectRole('manager'), deleteProject);
+  (req, res, next) => {
+    if (req.profile?.role === 'admin') return next();
+    requireProjectRole('manager')(req, res, next);
+  },
+  deleteProject
+);
 
 // ── Members ───────────────────────────────────────────────────────────────────
 router.get('/:projectId/members',
   requireProjectMembership, getMembers);
+
+// Admins AND project managers can add/update/remove members
 router.post('/:projectId/members',
   requireProjectRole('manager'), addMember);
 router.patch('/:projectId/members/:memberId',
