@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 export default function SignupPage() {
   const { signup } = useAuth();
   const navigate   = useNavigate();
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'member' });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
 
   const handle = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -16,8 +16,8 @@ export default function SignupPage() {
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      await signup(form.full_name, form.email, form.password, form.role);
-      toast.success('Account created! Please check your email to confirm, then log in.');
+      await signup(form.full_name, form.email, form.password, 'member');
+      toast.success('Account created! Please log in.');
       navigate('/login');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Signup failed');
@@ -60,13 +60,6 @@ export default function SignupPage() {
               <label className="form-label">Password</label>
               <input name="password" type="password" className="form-input"
                 placeholder="Min. 6 characters" value={form.password} onChange={handle} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Role</label>
-              <select name="role" className="form-input form-select" value={form.role} onChange={handle}>
-                <option value="member">Member</option>
-                <option value="manager">Manager</option>
-              </select>
             </div>
             <button type="submit" className="btn btn-primary w-full" disabled={loading}
               style={{ justifyContent: 'center', marginTop: 4 }}>

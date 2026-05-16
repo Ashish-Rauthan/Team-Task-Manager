@@ -6,7 +6,7 @@ import { Avatar } from '../../components/layout/AppLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-const COLORS = ['#6366f1','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#10b981','#3b82f6','#ef4444'];
+const COLORS = ['#5850ec','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#10b981','#3b82f6','#ef4444'];
 
 function ProjectModal({ onClose, onCreated }) {
   const [form, setForm]     = useState({ name: '', description: '', color: COLORS[0] });
@@ -30,7 +30,9 @@ function ProjectModal({ onClose, onCreated }) {
       <div className="modal">
         <div className="modal-header">
           <h2 className="modal-title">New Project</h2>
-          <button className="btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn-ghost btn-icon" onClick={onClose}>
+            <span className="material-symbols-outlined icon-sm">close</span>
+          </button>
         </div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="form-group">
@@ -49,10 +51,11 @@ function ProjectModal({ onClose, onCreated }) {
               {COLORS.map(c => (
                 <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
                   style={{
-                    width: 28, height: 28, borderRadius: '50%', background: c,
+                    width: 30, height: 30, borderRadius: '50%', background: c,
                     border: form.color === c ? '3px solid white' : '3px solid transparent',
-                    boxShadow: form.color === c ? '0 0 0 2px ' + c : 'none',
+                    boxShadow: form.color === c ? `0 0 0 2px ${c}` : 'none',
                     transition: 'all 0.15s',
+                    cursor: 'pointer',
                   }} />
               ))}
             </div>
@@ -60,7 +63,12 @@ function ProjectModal({ onClose, onCreated }) {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <span className="spinner" /> : 'Create Project'}
+              {loading ? <span className="spinner" /> : (
+                <>
+                  <span className="material-symbols-outlined icon-sm">add</span>
+                  Create Project
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -72,35 +80,90 @@ function ProjectModal({ onClose, onCreated }) {
 function ProjectCard({ project }) {
   return (
     <Link to={`/projects/${project.id}`}>
-      <div className="card" style={{ cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = project.color; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = ''; }}
+      <div
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          transition: 'all 0.25s',
+          boxShadow: 'var(--shadow-sm)',
+          position: 'relative',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.10)';
+          e.currentTarget.style.borderColor = project.color + '60';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = '';
+          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+          e.currentTarget.style.borderColor = '';
+        }}
       >
         {/* Color strip */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: project.color }} />
-        <div style={{ marginTop: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <div style={{
-              width: 10, height: 10, borderRadius: '50%', background: project.color, flexShrink: 0,
-            }} />
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {project.name}
-            </h3>
+        <div style={{ height: 4, background: project.color }} />
+
+        <div style={{ padding: '18px 20px' }}>
+          {/* Status badge + color dot */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontFamily: 'var(--font-mono)',
+              background: `${project.color}15`,
+              color: project.color,
+            }}>
+              {project.is_archived ? 'Archived' : 'Active'}
+            </span>
           </div>
+
+          <h3 style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            marginBottom: 8,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
+          }}>
+            {project.name}
+          </h3>
+
           {project.description && (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 14,
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            <p style={{
+              fontSize: '0.8125rem',
+              color: 'var(--text-secondary)',
+              marginBottom: 16,
+              lineHeight: 1.6,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>
               {project.description}
             </p>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+          {/* Footer */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            paddingTop: 14, borderTop: '1px solid var(--border)',
+            marginTop: project.description ? 0 : 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Avatar name={project.owner?.full_name} size="avatar-sm" />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {project.owner?.full_name}
               </span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {format(new Date(project.created_at), 'MMM d')}
             </span>
           </div>
@@ -112,9 +175,10 @@ function ProjectCard({ project }) {
 
 export default function ProjectsPage() {
   const { isManager } = useAuth();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [projects, setProjects]   = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [search, setSearch]       = useState('');
 
   useEffect(() => {
     projectsAPI.list()
@@ -123,35 +187,66 @@ export default function ProjectsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filtered = projects.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div>
+      {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">Projects</h1>
-        {isManager && (
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            + New Project
-          </button>
-        )}
+        <div>
+          <h1 className="page-title">Projects</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 2 }}>
+            Manage your workspace initiatives and track team progress.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ position: 'relative' }}>
+            <span className="material-symbols-outlined icon-sm" style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              color: 'var(--text-muted)', pointerEvents: 'none',
+            }}>search</span>
+            <input
+              className="form-input"
+              style={{ width: 240, paddingLeft: 38, borderRadius: 'var(--radius-full)' }}
+              placeholder="Search projects..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          {isManager && (
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              <span className="material-symbols-outlined icon-sm">add</span>
+              New Project
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 60 }}>
           <div className="spinner spinner-lg" />
         </div>
-      ) : projects.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="empty-state" style={{ marginTop: 60 }}>
-          <span className="empty-state-icon">◫</span>
-          <h3 style={{ fontWeight: 600 }}>No projects yet</h3>
-          <p style={{ fontSize: '0.875rem' }}>Create your first project to get started</p>
-          {isManager && (
+          <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', opacity: 0.3 }}>folder_open</span>
+          <h3 style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+            {search ? 'No projects match your search' : 'No projects yet'}
+          </h3>
+          <p style={{ fontSize: '0.875rem' }}>
+            {search ? 'Try a different search term' : 'Create your first project to get started'}
+          </p>
+          {isManager && !search && (
             <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              + New Project
+              <span className="material-symbols-outlined icon-sm">add</span>
+              New Project
             </button>
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-          {projects.map(p => <ProjectCard key={p.id} project={p} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+          {filtered.map(p => <ProjectCard key={p.id} project={p} />)}
         </div>
       )}
 

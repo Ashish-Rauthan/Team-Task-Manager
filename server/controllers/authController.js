@@ -5,14 +5,14 @@ const { supabase, supabaseAdmin } = require('../db/supabase');
  */
 const signup = async (req, res) => {
   try {
-    const { full_name, email, password, role = 'member' } = req.body;
+    const { full_name, email, password } = req.body;
+    const role = 'member'; // always member — admin assigns roles via UsersPage
 
-    // Create user in Supabase Auth (triggers handle_new_user → inserts profile)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name, role }  // passed to raw_user_meta_data → trigger reads it
+        data: { full_name, role }
       }
     });
 
@@ -49,7 +49,6 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Fetch profile for role info
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -57,10 +56,10 @@ const login = async (req, res) => {
       .single();
 
     return res.json({
-      message:      'Login successful',
-      access_token: data.session.access_token,
+      message:       'Login successful',
+      access_token:  data.session.access_token,
       refresh_token: data.session.refresh_token,
-      user:         profile
+      user:          profile
     });
   } catch (err) {
     console.error('[login]', err);
@@ -83,7 +82,6 @@ const logout = async (req, res) => {
 
 /**
  * GET /api/auth/me
- * Returns the current user's profile
  */
 const me = async (req, res) => {
   try {
@@ -96,15 +94,14 @@ const me = async (req, res) => {
 
 /**
  * PATCH /api/auth/me
- * Update own profile (name, avatar)
  */
 const updateMe = async (req, res) => {
   try {
     const { full_name, avatar_url } = req.body;
 
     const updates = {};
-    if (full_name)   updates.full_name   = full_name;
-    if (avatar_url)  updates.avatar_url  = avatar_url;
+    if (full_name)  updates.full_name  = full_name;
+    if (avatar_url) updates.avatar_url = avatar_url;
 
     const { data, error } = await supabaseAdmin
       .from('profiles')
@@ -124,7 +121,6 @@ const updateMe = async (req, res) => {
 
 /**
  * GET /api/auth/users   [admin only]
- * List all users
  */
 const listUsers = async (req, res) => {
   try {
@@ -144,14 +140,21 @@ const listUsers = async (req, res) => {
 
 /**
  * PATCH /api/auth/users/:id/role   [admin only]
+ * Only allows promoting/demoting between member and manager.
+ * Admin role can only be set directly in the database.
  */
 const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
     const { id }   = req.params;
 
-    if (!['admin', 'manager', 'member'].includes(role)) {
-      return res.status(422).json({ error: 'Invalid role' });
+    if (!['manager', 'member'].includes(role)) {
+      return res.status(422).json({ error: 'Invalid role. Only member or manager can be assigned.' });
+    }
+
+    // Prevent admin from demoting themselves
+    if (id === req.profile.id) {
+      return res.status(403).json({ error: 'You cannot change your own role.' });
     }
 
     const { data, error } = await supabaseAdmin
