@@ -5,9 +5,6 @@ const { supabaseAdmin } = require('../db/supabase');
  * ─────────────────────
  * Checks req.profile.role (global role) against the allowed list.
  * Must be used AFTER requireAuth.
- *
- * Usage:
- *   router.delete('/:id', requireAuth, requireRole('admin'), deleteProject)
  */
 const requireRole = (...roles) => (req, res, next) => {
   if (!req.profile) {
@@ -25,11 +22,10 @@ const requireRole = (...roles) => (req, res, next) => {
  * requireProjectRole(...roles)
  * ────────────────────────────
  * Checks the user's role within a specific project (project_members.role).
- * Reads project_id from req.params.projectId (or req.params.id for project-level routes).
- * Admins always pass — they can manage any project regardless of membership.
+ * Reads project_id from req.params.projectId OR req.params.id.
+ * Global admins always pass, and get a synthetic projectMember attached.
  *
- * Usage:
- *   router.post('/:projectId/members', requireAuth, requireProjectRole('manager'), addMember)
+ * Always attaches req.projectMember so downstream controllers can read it.
  */
 const requireProjectRole = (...roles) => async (req, res, next) => {
   try {
@@ -37,10 +33,21 @@ const requireProjectRole = (...roles) => async (req, res, next) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Admins bypass all project-level role checks
-    if (req.profile.role === 'admin') return next();
-
     const projectId = req.params.projectId || req.params.id;
+
+    // Global admins bypass project-level checks but still get projectMember attached
+    if (req.profile.role === 'admin') {
+      // Attach their actual member row if it exists, otherwise a synthetic one
+      const { data: member } = await supabaseAdmin
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', req.profile.id)
+        .single();
+
+      req.projectMember = member || { role: 'manager' }; // admins treated as manager
+      return next();
+    }
 
     const { data: member, error } = await supabaseAdmin
       .from('project_members')
@@ -71,9 +78,46 @@ const requireProjectRole = (...roles) => async (req, res, next) => {
  * requireProjectMembership
  * ────────────────────────
  * Ensures the user is a member of the project (any role).
- * Admins are always allowed through.
- * Shorthand for requireProjectRole('manager', 'member').
+ * Also attaches req.projectMember for downstream use.
  */
-const requireProjectMembership = requireProjectRole('manager', 'member');
+const requireProjectMembership = async (req, res, next) => {
+  try {
+    if (!req.profile) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const projectId = req.params.projectId || req.params.id;
+
+    // Global admins always have access
+    if (req.profile.role === 'admin') {
+      const { data: member } = await supabaseAdmin
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', req.profile.id)
+        .single();
+
+      req.projectMember = member || { role: 'manager' };
+      return next();
+    }
+
+    const { data: member, error } = await supabaseAdmin
+      .from('project_members')
+      .select('role')
+      .eq('project_id', projectId)
+      .eq('user_id', req.profile.id)
+      .single();
+
+    if (error || !member) {
+      return res.status(403).json({ error: 'You are not a member of this project' });
+    }
+
+    req.projectMember = member;
+    next();
+  } catch (err) {
+    console.error('[requireProjectMembership]', err);
+    res.status(500).json({ error: 'Role check failed' });
+  }
+};
 
 module.exports = { requireRole, requireProjectRole, requireProjectMembership };

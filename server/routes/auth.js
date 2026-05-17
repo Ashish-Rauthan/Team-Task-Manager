@@ -17,8 +17,10 @@ router.post('/logout', logout);
 router.get('/me',   requireAuth, me);
 router.patch('/me', requireAuth, updateMe);
 
-// Admin only
-router.get('/users',             requireAuth, requireRole('admin'), listUsers);
-router.patch('/users/:id/role',  requireAuth, requireRole('admin'), updateUserRole);
+// Managers AND admins can list users (needed for Add Member modal)
+router.get('/users', requireAuth, requireRole('admin', 'manager'), listUsers);
+
+// Role changes are admin-only
+router.patch('/users/:id/role', requireAuth, requireRole('admin'), updateUserRole);
 
 module.exports = router;
